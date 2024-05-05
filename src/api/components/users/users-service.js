@@ -5,8 +5,19 @@ const { hashPassword, passwordMatched } = require('../../../utils/password');
  * Get list of users
  * @returns {Array}
  */
-async function getUsers() {
-  const users = await usersRepository.getUsers();
+async function getUsers(query) {
+  let page_number = query.page_number ? parseInt(query.page_number) : 1;
+  let page_size = query.page_size ? parseInt(query.page_size) : 10;
+  let total_pages = 1;
+  let has_previous_page = false;
+  let has_next_page = false;
+
+  const users = await usersRepository.getUsers({
+    page_number,
+    page_size,
+    sort: query.sort,
+    search: query.search,
+  });
 
   const results = [];
   for (let i = 0; i < users.length; i += 1) {
@@ -15,10 +26,35 @@ async function getUsers() {
       id: user.id,
       name: user.name,
       email: user.email,
+      balance: user.balance,
     });
   }
 
-  return results;
+  const totalCount = await usersRepository.getUsersTotal({
+    search: query.search,
+  });
+  total_pages = Math.ceil(totalCount / page_size);
+
+  if (total_pages < 1) total_pages = 1;
+  else if (total_pages > 1) {
+    if (page_number > 1) {
+      has_previous_page = true;
+    }
+
+    if (page_number < total_pages) {
+      has_next_page = true;
+    }
+  }
+
+  return {
+    page_number,
+    page_size,
+    count: totalCount,
+    total_pages,
+    has_previous_page,
+    has_next_page,
+    data: results,
+  };
 }
 
 /**
@@ -38,6 +74,7 @@ async function getUser(id) {
     id: user.id,
     name: user.name,
     email: user.email,
+    balance: user.balance,
   };
 }
 
@@ -46,14 +83,15 @@ async function getUser(id) {
  * @param {string} name - Name
  * @param {string} email - Email
  * @param {string} password - Password
+ * @param {number} balance - Balance
  * @returns {boolean}
  */
-async function createUser(name, email, password) {
+async function createUser(name, email, password, balance) {
   // Hash password
   const hashedPassword = await hashPassword(password);
 
   try {
-    await usersRepository.createUser(name, email, hashedPassword);
+    await usersRepository.createUser(name, email, hashedPassword, balance);
   } catch (err) {
     return null;
   }
@@ -78,6 +116,29 @@ async function updateUser(id, name, email) {
 
   try {
     await usersRepository.updateUser(id, name, email);
+  } catch (err) {
+    return null;
+  }
+
+  return true;
+}
+
+/**
+ * Update user balance
+ * @param {string} id - User ID
+ * @param {number} balance - Balance
+ * @returns {boolean}
+ */
+async function updateBalance(id, balance) {
+  const user = await usersRepository.getUser(id);
+
+  // User not found
+  if (!user) {
+    return null;
+  }
+
+  try {
+    await usersRepository.updateBalance(id, balance);
   } catch (err) {
     return null;
   }
@@ -170,4 +231,5 @@ module.exports = {
   emailIsRegistered,
   checkPassword,
   changePassword,
+  updateBalance,
 };

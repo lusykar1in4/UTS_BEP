@@ -4,8 +4,67 @@ const { User } = require('../../../models');
  * Get a list of users
  * @returns {Promise}
  */
-async function getUsers() {
-  return User.find({});
+async function getUsers(query) {
+  let sort = {};
+  if (query.sort) {
+    const [sort_type, sort_order] = query.sort.split(':');
+    sort = {
+      [sort_type]: sort_order == 'desc' ? -1 : 0,
+    };
+  }
+
+  let search = {};
+  if (query.search) {
+    const [search_type, search_value] = query.search.split(':');
+
+    if (search_value) {
+      if (search_type == 'balance') {
+        search = {
+          [search_type]: search_value,
+        };
+      } else {
+        const regex = new RegExp(search_value, 'i');
+        search = {
+          [search_type]: {
+            $regex: regex,
+          },
+        };
+      }
+    }
+  }
+
+  const skip = (query.page_number - 1) * query.page_size;
+
+  const users = User.find(search).sort(sort).limit(query.page_size).skip(skip);
+  return users;
+}
+
+/**
+ * Get total of users
+ * @returns {Promise}
+ */
+async function getUsersTotal(query) {
+  let search = {};
+  if (query.search) {
+    const [search_type, search_value] = query.search.split(':');
+
+    if (search_value) {
+      if (search_type == 'balance') {
+        search = {
+          [search_type]: search_value,
+        };
+      } else {
+        const regex = new RegExp(search_value, 'i');
+        search = {
+          [search_type]: {
+            $regex: regex,
+          },
+        };
+      }
+    }
+  }
+  const numUsers = User.countDocuments(search);
+  return numUsers;
 }
 
 /**
@@ -22,13 +81,15 @@ async function getUser(id) {
  * @param {string} name - Name
  * @param {string} email - Email
  * @param {string} password - Hashed password
+ * @param {number} balance - Balance
  * @returns {Promise}
  */
-async function createUser(name, email, password) {
+async function createUser(name, email, password, balance) {
   return User.create({
     name,
     email,
     password,
+    balance,
   });
 }
 
@@ -48,6 +109,25 @@ async function updateUser(id, name, email) {
       $set: {
         name,
         email,
+      },
+    }
+  );
+}
+
+/**
+ * Update user balance
+ * @param {string} id - User ID
+ * @param {number} balance - Balance
+ * @returns {Promise}
+ */
+async function updateBalance(id, balance) {
+  return User.updateOne(
+    {
+      _id: id,
+    },
+    {
+      $set: {
+        balance,
       },
     }
   );
@@ -89,4 +169,6 @@ module.exports = {
   deleteUser,
   getUserByEmail,
   changePassword,
+  updateBalance,
+  getUsersTotal,
 };

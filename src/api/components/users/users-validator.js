@@ -20,6 +20,7 @@ module.exports = {
         .required()
         .label('Password'),
       password_confirm: joi.string().required().label('Password confirmation'),
+      balance: joi.number().required().label('Balance'),
     },
   },
 
@@ -27,6 +28,12 @@ module.exports = {
     body: {
       name: joi.string().min(1).max(100).required().label('Name'),
       email: joi.string().email().required().label('Email'),
+    },
+  },
+
+  updateBalance: {
+    body: {
+      balance: joi.number().required().label('Balance'),
     },
   },
 

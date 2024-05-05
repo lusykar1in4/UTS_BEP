@@ -10,7 +10,7 @@ const { errorResponder, errorTypes } = require('../../../core/errors');
  */
 async function getUsers(request, response, next) {
   try {
-    const users = await usersService.getUsers();
+    const users = await usersService.getUsers(request.query);
     return response.status(200).json(users);
   } catch (error) {
     return next(error);
@@ -51,6 +51,7 @@ async function createUser(request, response, next) {
     const email = request.body.email;
     const password = request.body.password;
     const password_confirm = request.body.password_confirm;
+    const balance = request.body.balance;
 
     // Check confirmation password
     if (password !== password_confirm) {
@@ -69,7 +70,12 @@ async function createUser(request, response, next) {
       );
     }
 
-    const success = await usersService.createUser(name, email, password);
+    const success = await usersService.createUser(
+      name,
+      email,
+      password,
+      balance
+    );
     if (!success) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
@@ -110,6 +116,32 @@ async function updateUser(request, response, next) {
       throw errorResponder(
         errorTypes.UNPROCESSABLE_ENTITY,
         'Failed to update user'
+      );
+    }
+
+    return response.status(200).json({ id });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+/**
+ * Handle update user balance request
+ * @param {object} request - Express request object
+ * @param {object} response - Express response object
+ * @param {object} next - Express route middlewares
+ * @returns {object} Response object or pass an error to the next route
+ */
+async function updateBalance(request, response, next) {
+  try {
+    const id = request.params.id;
+    const balance = request.body.balance;
+
+    const success = await usersService.updateBalance(id, balance);
+    if (!success) {
+      throw errorResponder(
+        errorTypes.UNPROCESSABLE_ENTITY,
+        'Failed to update user balance'
       );
     }
 
@@ -196,4 +228,5 @@ module.exports = {
   updateUser,
   deleteUser,
   changePassword,
+  updateBalance,
 };
