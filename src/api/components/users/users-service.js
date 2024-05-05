@@ -63,19 +63,23 @@ async function getUsers(query) {
  * @returns {Object}
  */
 async function getUser(id) {
-  const user = await usersRepository.getUser(id);
+  try {
+    const user = await usersRepository.getUser(id);
 
-  // User not found
-  if (!user) {
+    // User not found
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      balance: user.balance,
+    };
+  } catch {
     return null;
   }
-
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    balance: user.balance,
-  };
 }
 
 /**

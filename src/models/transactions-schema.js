@@ -1,6 +1,14 @@
+const mongoose = require('mongoose');
+
 const transactionsSchema = {
-  user_Id_Sender: String,
-  user_Id_Receiver: String,
+  userSender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+  },
+  userReceiver: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+  },
   nominal: Number,
   description: String,
   date: Date,
